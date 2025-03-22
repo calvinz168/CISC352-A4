@@ -98,6 +98,15 @@ class DigitClassificationModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.learning_rate = 0.1
+        self.batch_size = 100
+        self.hidden_size = 200
+        
+        # Initialize weights and biases
+        self.W1 = nn.Parameter(784, self.hidden_size)
+        self.b1 = nn.Parameter(1, self.hidden_size)
+        self.W2 = nn.Parameter(self.hidden_size, 10)
+        self.b2 = nn.Parameter(1, 10)
 
     def run(self, x):
         """
@@ -114,6 +123,9 @@ class DigitClassificationModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        layer1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.W1), self.b1))
+        logits = nn.AddBias(nn.Linear(layer1, self.W2), self.b2)
+        return logits
 
     def get_loss(self, x, y):
         """
@@ -129,10 +141,25 @@ class DigitClassificationModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        logits = self.run(x)
+        return nn.SoftmaxLoss(logits, y)
 
     def train_model(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
-
+        while True:
+            for x, y in dataset.iterate_once(self.batch_size):
+                loss = self.get_loss(x, y)
+                gradients = nn.gradients([self.W1, self.b1, self.W2, self.b2], loss)
+                
+                # Update parameters
+                self.W1.update(-self.learning_rate, gradients[0])
+                self.b1.update(-self.learning_rate, gradients[1])
+                self.W2.update(-self.learning_rate, gradients[2])
+                self.b2.update(-self.learning_rate, gradients[3])
+                
+            # Check validation accuracy for termination
+            if dataset.get_validation_accuracy() >= 0.975:
+                break
