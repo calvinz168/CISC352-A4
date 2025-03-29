@@ -1,4 +1,5 @@
 import nn
+import numpy as np
 
 class PerceptronModel(object):
     def __init__(self, dim):
@@ -56,43 +57,58 @@ class PerceptronModel(object):
                     nn.Parameter.update(self.w, actual_label, x_point)
 
 class RegressionModel(object):
-    """
-    A neural network model for approximating a function that maps from real
-    numbers to real numbers. The network should be sufficiently large to be able
-    to approximate sin(x) on the interval [-2pi, 2pi] to reasonable precision.
-    """
     def __init__(self):
-        # Initialize your model parameters here
-        "*** YOUR CODE HERE ***"
+
+        self.W1 = nn.Parameter(1, 50)
+        self.b1 = nn.Parameter(1, 50)
+        self.W2 = nn.Parameter(50, 1)
+        self.b2 = nn.Parameter(1, 1)
+        self.learning_rate = 0.001
 
     def run(self, x):
         """
         Runs the model for a batch of examples.
-
-        Inputs:
-            x: a node with shape (batch_size x 1)
-        Returns:
-            A node with shape (batch_size x 1) containing predicted y-values
         """
-        "*** YOUR CODE HERE ***"
+        h1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.W1), self.b1))  # Hidden layer with ReLU activation
+        output = nn.AddBias(nn.Linear(h1, self.W2), self.b2)      # Output layer
+        return output
 
     def get_loss(self, x, y):
         """
         Computes the loss for a batch of examples.
-
-        Inputs:
-            x: a node with shape (batch_size x 1)
-            y: a node with shape (batch_size x 1), containing the true y-values
-                to be used for training
-        Returns: a loss node
         """
-        "*** YOUR CODE HERE ***"
+
+        predictions = self.run(x)
+        loss = nn.SquareLoss(predictions, y)
+        return loss
 
     def train_model(self, dataset):
         """
         Trains the model.
         """
-        "*** YOUR CODE HERE ***"
+        
+        while True:
+            total_loss = 0
+            num_batches = 0
+            for x_batch, y_batch in dataset.iterate_once(batch_size=10):
+                loss = self.get_loss(x_batch, y_batch)
+
+                gradients = nn.gradients([self.W1, self.b1, self.W2, self.b2], loss)
+
+                self.W1.update(-self.learning_rate, gradients[0])
+                self.b1.update(-self.learning_rate, gradients[1])
+                self.W2.update(-self.learning_rate, gradients[2])
+                self.b2.update(-self.learning_rate, gradients[3])
+                
+                total_loss += nn.as_scalar(loss)
+                num_batches += 1
+            
+            avg_loss = total_loss / num_batches
+            print(f"Avg loss: {avg_loss}")
+
+            if avg_loss < 0.02:
+                break
+
 
 class DigitClassificationModel(object):
     """
